@@ -1,12 +1,12 @@
-const CACHE_NAME = 'medication-reminder-v1';
+const CACHE_NAME = 'medication-reminder-v2';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 // Install event - cache resources
@@ -87,8 +87,8 @@ self.addEventListener('message', (event) => {
 function sendTestNotification() {
   self.registration.showNotification('Medikamenten-Erinnerung', {
     body: 'Test-Benachrichtigung erfolgreich! 🎉',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
     vibrate: [200, 100, 200],
     tag: 'test-notification',
     requireInteraction: false
@@ -101,8 +101,8 @@ function sendReminderNotification(data) {
   
   const options = {
     body: `Sie haben noch ${remaining.length} von ${total} Medikament(en) zu nehmen:\n${remaining.join(', ')}`,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
     vibrate: [200, 100, 200, 100, 200],
     tag: 'medication-reminder',
     requireInteraction: true,
@@ -117,7 +117,7 @@ function sendReminderNotification(data) {
       }
     ],
     data: {
-      url: '/'
+      url: './'
     }
   };
 
@@ -140,7 +140,7 @@ self.addEventListener('notificationclick', (event) => {
           }
           // Open new window if not
           if (clients.openWindow) {
-            return clients.openWindow('/');
+            return clients.openWindow('./');
           }
         })
     );
