@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Medikamenten-Erinnerung - Verwalten Sie Ihre täglichen Medikamente">
+    <meta name="theme-color" content="#4CAF50">
+    <title>Medikamenten-Erinnerung</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💊 Medikamenten-Erinnerung</h1>
+            <button id="settingsBtn" class="icon-btn" title="Einstellungen">⚙️</button>
+        </header>
+
+        <div class="date-display">
+            <span id="currentDate"></span>
+        </div>
+
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <div class="progress-text">
+            <span id="progressText">0 von 0 eingenommen</span>
+        </div>
+
+        <div id="medicationList" class="medication-list">
+            <!-- Medications will be populated here -->
+        </div>
+
+        <div class="empty-state" id="emptyState">
+            <p>📋 Keine Medikamente hinzugefügt</p>
+            <p class="small-text">Klicken Sie auf Einstellungen, um Medikamente hinzuzufügen</p>
+        </div>
+
+        <button id="resetBtn" class="reset-btn">Tag zurücksetzen</button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Einstellungen</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <section class="settings-section">
+                    <h3>Erinnerungszeit</h3>
+                    <div class="input-group">
+                        <label for="reminderTime">Tägliche Erinnerung um:</label>
+                        <input type="time" id="reminderTime" value="18:30">
+                    </div>
+                    <button id="testNotification" class="secondary-btn">Test-Benachrichtigung senden</button>
+                </section>
+
+                <section class="settings-section">
+                    <h3>Medikamente verwalten</h3>
+                    <div class="medication-input">
+                        <input type="text" id="newMedication" placeholder="Medikamentenname eingeben">
+                        <button id="addMedication" class="add-btn">Hinzufügen</button>
+                    </div>
+                    <ul id="medicationSettings" class="medication-settings-list">
+                        <!-- Medication settings will be populated here -->
+                    </ul>
+                </section>
+
+                <section class="settings-section">
+                    <h3>Benachrichtigungen</h3>
+                    <div class="notification-status">
+                        <p id="notificationStatus">Status: Überprüfung...</p>
+                        <button id="enableNotifications" class="secondary-btn" style="display:none;">Benachrichtigungen aktivieren</button>
+                    </div>
+                </section>
+            </div>
+
+            <div class="modal-footer">
+                <button id="saveSettings" class="primary-btn">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
