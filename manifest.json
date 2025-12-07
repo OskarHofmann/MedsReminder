@@ -2,7 +2,8 @@
   "name": "Medikamenten-Erinnerung",
   "short_name": "Medikamente",
   "description": "Tägliche Medikamenten-Erinnerung mit konfigurierbaren Benachrichtigungen",
-  "start_url": "/",
+  "start_url": "index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4CAF50",
@@ -24,6 +25,5 @@
   "categories": ["health", "lifestyle", "productivity"],
   "lang": "de-DE",
   "dir": "ltr",
-  "scope": "/",
   "prefer_related_applications": false
 }
