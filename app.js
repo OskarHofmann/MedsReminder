@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     registerServiceWorker();
     checkNotificationPermission();
+    setupServiceWorkerMessageListener();
 });
 
 function initializeApp() {
@@ -45,6 +46,10 @@ function setupEventListeners() {
     
     // Notification test
     document.getElementById('testNotification').addEventListener('click', sendTestNotification);
+    document.getElementById('testReminder').addEventListener('click', () => {
+        console.log('Manual reminder test triggered');
+        checkAndSendReminder();
+    });
     document.getElementById('enableNotifications').addEventListener('click', requestNotificationPermission);
     
     // Close modal on outside click
@@ -264,9 +269,30 @@ async function registerServiceWorker() {
         try {
             const registration = await navigator.serviceWorker.register('service-worker.js');
             console.log('Service Worker registered:', registration);
+            
+            // Schedule reminder after service worker is ready
+            if (navigator.serviceWorker.controller) {
+                scheduleNextReminder();
+            } else {
+                navigator.serviceWorker.ready.then(() => {
+                    scheduleNextReminder();
+                });
+            }
         } catch (error) {
             console.error('Service Worker registration failed:', error);
         }
+    }
+}
+
+// Listen for messages from service worker
+function setupServiceWorkerMessageListener() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'CHECK_REMINDER_NOW') {
+                // Service worker is asking us to check and send reminder
+                checkAndSendReminder();
+            }
+        });
     }
 }
 
@@ -333,7 +359,18 @@ function scheduleNextReminder() {
         clearInterval(window.reminderCheckInterval);
     }
     
-    // Check every minute if it's time for reminder
+    // Store reminder settings for service worker
+    localStorage.setItem('reminderScheduled', 'true');
+    
+    // Send message to service worker to schedule reminder
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'SCHEDULE_REMINDER',
+            reminderTime: reminderTime
+        });
+    }
+    
+    // Check every minute if it's time for reminder (when app is open)
     window.reminderCheckInterval = setInterval(checkReminderTime, 60000);
     
     // Also check immediately
@@ -343,22 +380,31 @@ function scheduleNextReminder() {
 function checkReminderTime() {
     const now = new Date();
     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const today = now.toDateString();
+    const lastReminderSent = localStorage.getItem('lastReminderSent');
     
-    if (currentTime === reminderTime) {
+    if (currentTime === reminderTime && lastReminderSent !== today) {
         checkAndSendReminder();
+        localStorage.setItem('lastReminderSent', today);
     }
 }
 
 function checkAndSendReminder() {
+    // Reload data from storage to ensure we have current state
+    loadSettings();
+    
     const total = medications.length;
     const completed = Object.values(dailyStatus).filter(status => status).length;
     
     if (total === 0 || completed >= total) {
         // All medications taken or no medications
+        console.log('All medications taken or no medications configured');
         return;
     }
     
     const remaining = medications.filter(med => !dailyStatus[med]);
+    
+    console.log(`Sending reminder: ${remaining.length} of ${total} medications remaining`);
     
     if (Notification.permission === 'granted') {
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -372,7 +418,7 @@ function checkAndSendReminder() {
             });
         } else {
             // Fallback notification
-            new Notification('Medikamenten-Erinnerung', {
+            new Notification('💊 Medikamenten-Erinnerung', {
                 body: `Sie haben noch ${remaining.length} Medikament(e) zu nehmen:\n${remaining.join(', ')}`,
                 icon: 'icon-192.png',
                 badge: 'icon-192.png',
@@ -380,6 +426,8 @@ function checkAndSendReminder() {
                 tag: 'medication-reminder'
             });
         }
+    } else {
+        console.log('Notification permission not granted');
     }
 }
 

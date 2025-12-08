@@ -1,4 +1,4 @@
-const CACHE_NAME = 'medication-reminder-v2';
+const CACHE_NAME = 'medication-reminder-v3';
 const urlsToCache = [
   './',
   './index.html',
@@ -8,6 +8,9 @@ const urlsToCache = [
   './icon-192.png',
   './icon-512.png'
 ];
+
+// Store for reminder check
+let reminderCheckInterval = null;
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {
@@ -80,6 +83,9 @@ self.addEventListener('message', (event) => {
     sendTestNotification();
   } else if (event.data && event.data.type === 'SEND_REMINDER') {
     sendReminderNotification(event.data.data);
+  } else if (event.data && event.data.type === 'SCHEDULE_REMINDER') {
+    // Start periodic checking when app requests it
+    scheduleReminderCheck(event.data.reminderTime);
   }
 });
 
@@ -154,9 +160,104 @@ self.addEventListener('sync', (event) => {
   }
 });
 
+// Schedule reminder check in service worker
+function scheduleReminderCheck(reminderTime) {
+  // Clear existing interval
+  if (reminderCheckInterval) {
+    clearInterval(reminderCheckInterval);
+  }
+  
+  // Check every minute
+  reminderCheckInterval = setInterval(() => {
+    checkIfTimeForReminder(reminderTime);
+  }, 60000);
+  
+  // Also check immediately
+  checkIfTimeForReminder(reminderTime);
+  
+  console.log('Reminder check scheduled for:', reminderTime);
+}
+
+async function checkIfTimeForReminder(reminderTime) {
+  const now = new Date();
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const today = now.toDateString();
+  
+  // Get last reminder sent date from IndexedDB or cache
+  const lastSent = await getLastReminderDate();
+  
+  if (currentTime === reminderTime && lastSent !== today) {
+    await checkMedicationsStatus();
+    await setLastReminderDate(today);
+  }
+}
+
 async function checkMedicationsStatus() {
-  // This could be enhanced to check medication status in the background
-  console.log('Background sync: checking medications');
+  console.log('Checking medication status...');
+  
+  // Open all clients to get current data
+  const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+  
+  if (clients.length > 0) {
+    // App is open, ask it to check
+    clients[0].postMessage({ type: 'CHECK_REMINDER_NOW' });
+  } else {
+    // App is closed, try to get data from cache/storage
+    try {
+      // We'll need to read from cache storage or trigger notification anyway
+      // For now, send a generic reminder
+      await sendGenericReminder();
+    } catch (error) {
+      console.error('Error checking medications:', error);
+    }
+  }
+}
+
+async function sendGenericReminder() {
+  await self.registration.showNotification('⏰ Medikamenten-Erinnerung', {
+    body: 'Haben Sie heute alle Medikamente eingenommen? Öffnen Sie die App, um Ihre Liste zu überprüfen.',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    vibrate: [200, 100, 200, 100, 200],
+    tag: 'medication-reminder-generic',
+    requireInteraction: true,
+    actions: [
+      {
+        action: 'view',
+        title: 'App öffnen'
+      },
+      {
+        action: 'dismiss',
+        title: 'Schließen'
+      }
+    ],
+    data: {
+      url: './'
+    }
+  });
+}
+
+// Helper functions to store reminder date
+async function getLastReminderDate() {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const response = await cache.match('last-reminder-date');
+    if (response) {
+      return await response.text();
+    }
+  } catch (e) {
+    console.log('Could not get last reminder date');
+  }
+  return null;
+}
+
+async function setLastReminderDate(date) {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put('last-reminder-date', new Response(date));
+  } catch (e) {
+    console.log('Could not set last reminder date');
+  }
 }
 
 // Periodic background sync (if supported)
