@@ -256,6 +256,42 @@ h1 {
     color: var(--text-primary);
 }
 
+.yesterday-status {
+    padding: 15px;
+    background: var(--background);
+    border-radius: 6px;
+}
+
+.yesterday-status h4 {
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+.yesterday-status .status-complete {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.yesterday-status .status-incomplete {
+    color: #ff9800;
+    font-weight: 500;
+}
+
+.yesterday-status .missed-items {
+    margin-top: 10px;
+    padding-left: 10px;
+}
+
+.yesterday-status .missed-item {
+    padding: 5px 0;
+    color: var(--text-secondary);
+}
+
+.yesterday-status .missed-item::before {
+    content: "❌ ";
+    margin-right: 5px;
+}
+
 .input-group {
     margin-bottom: 15px;
 }

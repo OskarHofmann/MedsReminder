@@ -2,12 +2,15 @@
 const STORAGE_KEYS = {
     MEDICATIONS: 'medications',
     DAILY_STATUS: 'dailyStatus',
-    LAST_RESET: 'lastReset'
+    LAST_RESET: 'lastReset',
+    YESTERDAY_DATA: 'yesterdayData',
+    YESTERDAY_VIEWED: 'yesterdayViewed'
 };
 
 // State management
 let medications = [];
 let dailyStatus = {};
+let yesterdayData = null;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
@@ -17,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initializeApp() {
     loadSettings();
+    loadYesterdayData();
     checkAndResetDaily();
     updateCurrentDate();
     renderMedicationList();
@@ -67,16 +71,51 @@ function saveToStorage() {
     localStorage.setItem(STORAGE_KEYS.DAILY_STATUS, JSON.stringify(dailyStatus));
 }
 
+// Load yesterday's data
+function loadYesterdayData() {
+    const stored = localStorage.getItem(STORAGE_KEYS.YESTERDAY_DATA);
+    if (stored) {
+        yesterdayData = JSON.parse(stored);
+    }
+}
+
 // Check if we need to reset for a new day
 function checkAndResetDaily() {
     const lastReset = localStorage.getItem(STORAGE_KEYS.LAST_RESET);
     const today = new Date().toDateString();
     
     if (lastReset !== today) {
+        // Get yesterday's date
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayDateString = yesterday.toDateString();
+        
+        // Only save yesterday's data if lastReset was actually yesterday
+        if (lastReset === yesterdayDateString) {
+            // Save yesterday's completion status
+            const yesterdayInfo = {
+                date: lastReset,
+                medications: [...medications],
+                status: {...dailyStatus},
+                total: medications.length,
+                completed: Object.values(dailyStatus).filter(status => status).length
+            };
+            localStorage.setItem(STORAGE_KEYS.YESTERDAY_DATA, JSON.stringify(yesterdayInfo));
+            // Mark as not viewed yet
+            localStorage.removeItem(STORAGE_KEYS.YESTERDAY_VIEWED);
+        }
+        
         // New day - reset all checkboxes
         dailyStatus = {};
         localStorage.setItem(STORAGE_KEYS.LAST_RESET, today);
         saveToStorage();
+        
+        // Show yesterday's summary if not viewed yet
+        loadYesterdayData();
+        if (yesterdayData && !localStorage.getItem(STORAGE_KEYS.YESTERDAY_VIEWED)) {
+            setTimeout(() => showYesterdaySummary(), 500);
+            localStorage.setItem(STORAGE_KEYS.YESTERDAY_VIEWED, 'true');
+        }
     }
 }
 
@@ -85,6 +124,38 @@ function updateCurrentDate() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const dateString = new Date().toLocaleDateString('de-DE', options);
     document.getElementById('currentDate').textContent = dateString;
+}
+
+// Show yesterday's summary
+function showYesterdaySummary() {
+    if (!yesterdayData) return;
+    
+    const { date, total, completed, medications: yesterdayMeds, status } = yesterdayData;
+    const dateObj = new Date(date);
+    const dateStr = dateObj.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+    
+    let message = `📊 Gestern (${dateStr}):\n\n`;
+    
+    if (total === 0) {
+        message += 'Keine Medikamente waren eingetragen.';
+    } else if (completed === total) {
+        message += `✅ Alle ${total} Medikamente wurden eingenommen!`;
+    } else {
+        message += `⚠️ ${completed} von ${total} Medikamenten eingenommen\n\n`;
+        message += 'Nicht eingenommen:\n';
+        yesterdayMeds.forEach(med => {
+            const medName = typeof med === 'string' ? med : med.name;
+            if (!status[medName]) {
+                message += `❌ ${medName}`;
+                if (typeof med === 'object' && med.amount) {
+                    message += ` (${med.amount})`;
+                }
+                message += '\n';
+            }
+        });
+    }
+    
+    alert(message);
 }
 
 // Render medication list
@@ -180,6 +251,7 @@ function openSettings() {
     
     // Load current settings
     renderMedicationSettings();
+    renderYesterdayStatus();
 }
 
 // Close settings modal
@@ -282,6 +354,52 @@ function deleteMedication(index) {
         renderMedicationList();
         updateProgress();
     }
+}
+
+// Render yesterday's status in settings
+function renderYesterdayStatus() {
+    const container = document.getElementById('yesterdayStatus');
+    
+    if (!yesterdayData) {
+        container.innerHTML = '<p style="color: #999;">Keine Daten vom Vortag verfügbar.</p>';
+        return;
+    }
+    
+    const { date, total, completed, medications: yesterdayMeds, status } = yesterdayData;
+    const dateObj = new Date(date);
+    const dateStr = dateObj.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+    
+    let html = `<h4>${dateStr}</h4>`;
+    
+    if (total === 0) {
+        html += '<p style="color: #999;">Keine Medikamente waren eingetragen.</p>';
+    } else if (completed === total) {
+        html += `<p class="status-complete">✅ Alle ${total} Medikamente wurden eingenommen!</p>`;
+    } else {
+        html += `<p class="status-incomplete">⚠️ ${completed} von ${total} Medikamenten eingenommen</p>`;
+        
+        const missedMeds = yesterdayMeds.filter(med => {
+            const medName = typeof med === 'string' ? med : med.name;
+            return !status[medName];
+        });
+        
+        if (missedMeds.length > 0) {
+            html += '<div class="missed-items">';
+            html += '<p style="margin-bottom: 5px; font-weight: 500;">Nicht eingenommen:</p>';
+            missedMeds.forEach(med => {
+                const medName = typeof med === 'string' ? med : med.name;
+                const medAmount = typeof med === 'string' ? '' : (med.amount || '');
+                html += `<div class="missed-item">${medName}`;
+                if (medAmount) {
+                    html += ` <span style="color: #999;">(${medAmount})</span>`;
+                }
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+    }
+    
+    container.innerHTML = html;
 }
 
 // PWA Install prompt
