@@ -336,10 +336,15 @@ h1 {
 }
 
 .medication-input-group {
-    display: grid;
-    grid-template-columns: 2fr 1fr auto;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     margin-bottom: 15px;
+}
+
+.medication-input-fields {
+    display: flex;
+    gap: 10px;
 }
 
 .med-name-input,
@@ -350,8 +355,17 @@ h1 {
     font-size: 1rem;
 }
 
+.med-name-input {
+    flex: 2;
+}
+
 .med-amount-input {
+    flex: 1;
     min-width: 120px;
+}
+
+.medication-input-group .add-btn {
+    width: 100%;
 }
 
 .add-btn {
