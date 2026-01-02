@@ -34,6 +34,9 @@ function setupEventListeners() {
     document.getElementById('newMedication').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addMedication();
     });
+    document.getElementById('newMedicationAmount').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addMedication();
+    });
     
     // Reset button
     document.getElementById('resetBtn').addEventListener('click', resetDay);
@@ -100,18 +103,33 @@ function renderMedicationList() {
     listContainer.innerHTML = '';
     
     medications.forEach((med, index) => {
+        const medName = typeof med === 'string' ? med : med.name;
+        const medAmount = typeof med === 'string' ? '' : (med.amount || '');
+        const medId = medName;
+        
         const item = document.createElement('div');
-        item.className = 'medication-item' + (dailyStatus[med] ? ' checked' : '');
+        item.className = 'medication-item' + (dailyStatus[medId] ? ' checked' : '');
         
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.id = `med-${index}`;
-        checkbox.checked = dailyStatus[med] || false;
-        checkbox.addEventListener('change', () => toggleMedication(med));
+        checkbox.checked = dailyStatus[medId] || false;
+        checkbox.addEventListener('change', () => toggleMedication(medId));
         
         const label = document.createElement('label');
         label.htmlFor = `med-${index}`;
-        label.textContent = med;
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'med-name-display';
+        nameSpan.textContent = medName;
+        label.appendChild(nameSpan);
+        
+        if (medAmount) {
+            const amountSpan = document.createElement('span');
+            amountSpan.className = 'med-amount-display';
+            amountSpan.textContent = medAmount;
+            label.appendChild(amountSpan);
+        }
         
         item.appendChild(checkbox);
         item.appendChild(label);
@@ -119,7 +137,7 @@ function renderMedicationList() {
         item.addEventListener('click', (e) => {
             if (e.target !== checkbox) {
                 checkbox.checked = !checkbox.checked;
-                toggleMedication(med);
+                toggleMedication(medId);
             }
         });
         
@@ -187,18 +205,33 @@ function renderMedicationSettings() {
     }
     
     medications.forEach((med, index) => {
+        const medName = typeof med === 'string' ? med : med.name;
+        const medAmount = typeof med === 'string' ? '' : (med.amount || '');
+        
         const item = document.createElement('li');
         item.className = 'medication-settings-item';
         
-        const name = document.createElement('span');
-        name.textContent = med;
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'med-info';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'med-name';
+        nameSpan.textContent = medName;
+        infoDiv.appendChild(nameSpan);
+        
+        if (medAmount) {
+            const amountSpan = document.createElement('span');
+            amountSpan.className = 'med-amount';
+            amountSpan.textContent = medAmount;
+            infoDiv.appendChild(amountSpan);
+        }
         
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-btn';
         deleteBtn.textContent = 'Löschen';
         deleteBtn.addEventListener('click', () => deleteMedication(index));
         
-        item.appendChild(name);
+        item.appendChild(infoDiv);
         item.appendChild(deleteBtn);
         list.appendChild(item);
     });
@@ -206,30 +239,41 @@ function renderMedicationSettings() {
 
 // Add medication
 function addMedication() {
-    const input = document.getElementById('newMedication');
-    const medName = input.value.trim();
+    const nameInput = document.getElementById('newMedication');
+    const amountInput = document.getElementById('newMedicationAmount');
+    const medName = nameInput.value.trim();
+    const medAmount = amountInput.value.trim();
     
     if (!medName) {
         alert('Bitte geben Sie einen Medikamentennamen ein.');
         return;
     }
     
-    if (medications.includes(medName)) {
+    // Check if medication name already exists
+    const existingMed = medications.find(med => {
+        const name = typeof med === 'string' ? med : med.name;
+        return name === medName;
+    });
+    
+    if (existingMed) {
         alert('Dieses Medikament ist bereits in der Liste.');
         return;
     }
     
-    medications.push(medName);
+    medications.push({ name: medName, amount: medAmount });
     saveToStorage();
     renderMedicationSettings();
     renderMedicationList();
     updateProgress();
-    input.value = '';
+    nameInput.value = '';
+    amountInput.value = '';
 }
 
 // Delete medication
 function deleteMedication(index) {
-    const medName = medications[index];
+    const med = medications[index];
+    const medName = typeof med === 'string' ? med : med.name;
+    
     if (confirm(`Möchten Sie "${medName}" wirklich löschen?`)) {
         medications.splice(index, 1);
         delete dailyStatus[medName];
