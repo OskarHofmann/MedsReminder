@@ -2,22 +2,17 @@
 const STORAGE_KEYS = {
     MEDICATIONS: 'medications',
     DAILY_STATUS: 'dailyStatus',
-    REMINDER_TIME: 'reminderTime',
     LAST_RESET: 'lastReset'
 };
 
 // State management
 let medications = [];
 let dailyStatus = {};
-let reminderTime = '18:30';
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     setupEventListeners();
-    registerServiceWorker();
-    checkNotificationPermission();
-    setupServiceWorkerMessageListener();
 });
 
 function initializeApp() {
@@ -26,7 +21,6 @@ function initializeApp() {
     updateCurrentDate();
     renderMedicationList();
     updateProgress();
-    scheduleNextReminder();
 }
 
 function setupEventListeners() {
@@ -44,14 +38,6 @@ function setupEventListeners() {
     // Reset button
     document.getElementById('resetBtn').addEventListener('click', resetDay);
     
-    // Notification test
-    document.getElementById('testNotification').addEventListener('click', sendTestNotification);
-    document.getElementById('testReminder').addEventListener('click', () => {
-        console.log('Manual reminder test triggered');
-        checkAndSendReminder();
-    });
-    document.getElementById('enableNotifications').addEventListener('click', requestNotificationPermission);
-    
     // Close modal on outside click
     document.getElementById('settingsModal').addEventListener('click', (e) => {
         if (e.target.id === 'settingsModal') closeSettings();
@@ -62,7 +48,6 @@ function setupEventListeners() {
 function loadSettings() {
     const storedMedications = localStorage.getItem(STORAGE_KEYS.MEDICATIONS);
     const storedStatus = localStorage.getItem(STORAGE_KEYS.DAILY_STATUS);
-    const storedTime = localStorage.getItem(STORAGE_KEYS.REMINDER_TIME);
     
     if (storedMedications) {
         medications = JSON.parse(storedMedications);
@@ -71,17 +56,12 @@ function loadSettings() {
     if (storedStatus) {
         dailyStatus = JSON.parse(storedStatus);
     }
-    
-    if (storedTime) {
-        reminderTime = storedTime;
-    }
 }
 
 // Save settings to localStorage
 function saveToStorage() {
     localStorage.setItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify(medications));
     localStorage.setItem(STORAGE_KEYS.DAILY_STATUS, JSON.stringify(dailyStatus));
-    localStorage.setItem(STORAGE_KEYS.REMINDER_TIME, reminderTime);
 }
 
 // Check if we need to reset for a new day
@@ -181,7 +161,6 @@ function openSettings() {
     modal.classList.add('show');
     
     // Load current settings
-    document.getElementById('reminderTime').value = reminderTime;
     renderMedicationSettings();
 }
 
@@ -193,9 +172,7 @@ function closeSettings() {
 
 // Save settings
 function saveSettings() {
-    reminderTime = document.getElementById('reminderTime').value;
     saveToStorage();
-    scheduleNextReminder();
     closeSettings();
 }
 
@@ -260,174 +237,6 @@ function deleteMedication(index) {
         renderMedicationSettings();
         renderMedicationList();
         updateProgress();
-    }
-}
-
-// Service Worker Registration
-async function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        try {
-            const registration = await navigator.serviceWorker.register('service-worker.js');
-            console.log('Service Worker registered:', registration);
-            
-            // Schedule reminder after service worker is ready
-            if (navigator.serviceWorker.controller) {
-                scheduleNextReminder();
-            } else {
-                navigator.serviceWorker.ready.then(() => {
-                    scheduleNextReminder();
-                });
-            }
-        } catch (error) {
-            console.error('Service Worker registration failed:', error);
-        }
-    }
-}
-
-// Listen for messages from service worker
-function setupServiceWorkerMessageListener() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event.data && event.data.type === 'CHECK_REMINDER_NOW') {
-                // Service worker is asking us to check and send reminder
-                checkAndSendReminder();
-            }
-        });
-    }
-}
-
-// Notification handling
-function checkNotificationPermission() {
-    const statusElement = document.getElementById('notificationStatus');
-    const enableButton = document.getElementById('enableNotifications');
-    
-    if (!('Notification' in window)) {
-        statusElement.textContent = 'Status: Benachrichtigungen werden nicht unterstützt';
-        return;
-    }
-    
-    if (Notification.permission === 'granted') {
-        statusElement.textContent = 'Status: ✅ Benachrichtigungen aktiviert';
-        enableButton.style.display = 'none';
-    } else if (Notification.permission === 'denied') {
-        statusElement.textContent = 'Status: ❌ Benachrichtigungen blockiert (in Browsereinstellungen ändern)';
-        enableButton.style.display = 'none';
-    } else {
-        statusElement.textContent = 'Status: ⚠️ Benachrichtigungen nicht aktiviert';
-        enableButton.style.display = 'block';
-    }
-}
-
-async function requestNotificationPermission() {
-    if (!('Notification' in window)) {
-        alert('Ihr Browser unterstützt keine Benachrichtigungen.');
-        return;
-    }
-    
-    const permission = await Notification.requestPermission();
-    checkNotificationPermission();
-    
-    if (permission === 'granted') {
-        sendTestNotification();
-    }
-}
-
-function sendTestNotification() {
-    if (Notification.permission !== 'granted') {
-        alert('Bitte aktivieren Sie zuerst die Benachrichtigungen.');
-        return;
-    }
-    
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type: 'TEST_NOTIFICATION'
-        });
-    } else {
-        // Fallback for direct notification
-        new Notification('Medikamenten-Erinnerung', {
-            body: 'Test-Benachrichtigung erfolgreich!',
-            icon: 'icon-192.png',
-            badge: 'icon-192.png'
-        });
-    }
-}
-
-// Schedule reminder check
-function scheduleNextReminder() {
-    // Clear any existing scheduled check
-    if (window.reminderCheckInterval) {
-        clearInterval(window.reminderCheckInterval);
-    }
-    
-    // Store reminder settings for service worker
-    localStorage.setItem('reminderScheduled', 'true');
-    
-    // Send message to service worker to schedule reminder
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-            type: 'SCHEDULE_REMINDER',
-            reminderTime: reminderTime
-        });
-    }
-    
-    // Check every minute if it's time for reminder (when app is open)
-    window.reminderCheckInterval = setInterval(checkReminderTime, 60000);
-    
-    // Also check immediately
-    checkReminderTime();
-}
-
-function checkReminderTime() {
-    const now = new Date();
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const today = now.toDateString();
-    const lastReminderSent = localStorage.getItem('lastReminderSent');
-    
-    if (currentTime === reminderTime && lastReminderSent !== today) {
-        checkAndSendReminder();
-        localStorage.setItem('lastReminderSent', today);
-    }
-}
-
-function checkAndSendReminder() {
-    // Reload data from storage to ensure we have current state
-    loadSettings();
-    
-    const total = medications.length;
-    const completed = Object.values(dailyStatus).filter(status => status).length;
-    
-    if (total === 0 || completed >= total) {
-        // All medications taken or no medications
-        console.log('All medications taken or no medications configured');
-        return;
-    }
-    
-    const remaining = medications.filter(med => !dailyStatus[med]);
-    
-    console.log(`Sending reminder: ${remaining.length} of ${total} medications remaining`);
-    
-    if (Notification.permission === 'granted') {
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: 'SEND_REMINDER',
-                data: {
-                    remaining: remaining,
-                    total: total,
-                    completed: completed
-                }
-            });
-        } else {
-            // Fallback notification
-            new Notification('💊 Medikamenten-Erinnerung', {
-                body: `Sie haben noch ${remaining.length} Medikament(e) zu nehmen:\n${remaining.join(', ')}`,
-                icon: 'icon-192.png',
-                badge: 'icon-192.png',
-                requireInteraction: true,
-                tag: 'medication-reminder'
-            });
-        }
-    } else {
-        console.log('Notification permission not granted');
     }
 }
 
