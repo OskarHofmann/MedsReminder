@@ -1,18 +1,18 @@
-# 💊 Medikamenten-Erinnerung (Medication Reminder PWA)
+# Medikamenten-Erinnerung (Medication Reminder PWA)
 
 Eine Progressive Web App zur Verwaltung und Erinnerung an die tägliche Medikamenteneinnahme.
 
-## ✨ Features
+## Features
 
-- 📋 **Tägliche Medikamentenliste** - Verwalten Sie Ihre Medikamente als To-Do-Liste
-- ✅ **Abhaken** - Markieren Sie eingenommene Medikamente
-- 🔔 **Erinnerungen** - Automatische Benachrichtigungen zur konfigurierbaren Zeit (Standard: 18:30)
-- 📱 **Installierbar** - Installieren Sie die App auf Ihrem Gerät
-- 🔒 **Privat** - Alle Daten werden lokal gespeichert
-- 🌐 **Offline-fähig** - Funktioniert auch ohne Internetverbindung
-- 🔄 **Automatischer Reset** - Die Liste wird täglich automatisch zurückgesetzt
+- **Tägliche Medikamentenliste** - Verwalten Sie Ihre Medikamente als To-Do-Liste
+- **Abhaken** - Markieren Sie eingenommene Medikamente
+- **Erinnerungen** - Automatische Benachrichtigungen zur konfigurierbaren Zeit (Standard: 18:30)
+- **Installierbar** - Installieren Sie die App auf Ihrem Gerät
+- **Privat** - Alle Daten werden lokal gespeichert
+- **Offline-fähig** - Funktioniert auch ohne Internetverbindung
+- **Automatischer Reset** - Die Liste wird täglich automatisch zurückgesetzt
 
-## 🚀 Installation & Nutzung
+## Installation & Nutzung
 
 ### Lokale Nutzung
 
@@ -43,7 +43,7 @@ Eine Progressive Web App zur Verwaltung und Erinnerung an die tägliche Medikame
 ### Erste Schritte
 
 1. **Benachrichtigungen aktivieren**
-   - Klicken Sie auf das Einstellungen-Symbol (⚙️)
+   - Klicken Sie auf das Einstellungen-Symbol
    - Aktivieren Sie Benachrichtigungen im Browser
 
 2. **Medikamente hinzufügen**
@@ -58,7 +58,7 @@ Eine Progressive Web App zur Verwaltung und Erinnerung an die tägliche Medikame
    - Klicken Sie auf die Checkbox oder das gesamte Medikament
    - Der Fortschritt wird automatisch aktualisiert
 
-## 📱 Mobile Nutzung
+## Mobile Nutzung
 
 Die App ist für mobile Geräte optimiert und kann als eigenständige App installiert werden:
 
@@ -67,7 +67,7 @@ Die App ist für mobile Geräte optimiert und kann als eigenständige App instal
 
 Nach der Installation läuft die App wie eine native App und funktioniert auch offline.
 
-## 🔔 Benachrichtigungen
+## Benachrichtigungen
 
 Die App sendet zur eingestellten Zeit eine Benachrichtigung, wenn noch Medikamente nicht abgehakt wurden:
 
@@ -75,13 +75,13 @@ Die App sendet zur eingestellten Zeit eine Benachrichtigung, wenn noch Medikamen
 - Die Benachrichtigung zeigt, wie viele Medikamente noch ausstehen
 - Klicken Sie auf die Benachrichtigung, um die App zu öffnen
 
-## 🔒 Datenschutz
+## Datenschutz
 
 - Alle Daten werden **ausschließlich lokal** im Browser gespeichert (LocalStorage)
 - Keine Daten werden an Server übertragen
 - Perfekt für sensible Gesundheitsdaten
 
-## 📂 Projektstruktur
+## Projektstruktur
 
 ```
 MedikamentenErinnerung/
@@ -94,7 +94,7 @@ MedikamentenErinnerung/
 └── icon-512.png        # App-Icon (groß)
 ```
 
-## 🛠️ Technologie
+## Technologie
 
 - **HTML5** - Struktur
 - **CSS3** - Styling und Responsive Design
@@ -103,30 +103,3 @@ MedikamentenErinnerung/
 - **Notification API** - Push-Benachrichtigungen
 - **LocalStorage** - Datenspeicherung
 - **Web App Manifest** - PWA-Installation
-
-## 🔧 Anpassungen
-
-### Erinnerungszeit ändern
-In den Einstellungen können Sie die Zeit beliebig anpassen.
-
-### Weitere Funktionen hinzufügen
-Die App ist modular aufgebaut. Sie können weitere Features in `app.js` hinzufügen:
-- Mehrfache Erinnerungen pro Tag
-- Dosierungsinformationen
-- Einnahmezeiten pro Medikament
-- Export/Import von Medikamentenlisten
-
-## ⚠️ Hinweise
-
-- Die App ersetzt keine professionelle medizinische Beratung
-- Benachrichtigungen funktionieren nur, wenn der Browser Benachrichtigungen erlaubt
-- Bei iOS funktionieren Benachrichtigungen nur in Safari und wenn die App installiert ist
-- Für die beste Erfahrung installieren Sie die App auf Ihrem Gerät
-
-## 📝 Lizenz
-
-Dieses Projekt steht zur freien Verfügung.
-
----
-
-**Viel Erfolg bei der Medikamenteneinnahme! 💊**
