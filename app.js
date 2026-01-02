@@ -4,13 +4,15 @@ const STORAGE_KEYS = {
     DAILY_STATUS: 'dailyStatus',
     LAST_RESET: 'lastReset',
     YESTERDAY_DATA: 'yesterdayData',
-    YESTERDAY_VIEWED: 'yesterdayViewed'
+    YESTERDAY_VIEWED: 'yesterdayViewed',
+    CHANGE_REMINDERS: 'changeReminders'
 };
 
 // State management
 let medications = [];
 let dailyStatus = {};
 let yesterdayData = null;
+let changeReminders = [];
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,6 +24,7 @@ function initializeApp() {
     loadSettings();
     loadYesterdayData();
     checkAndResetDaily();
+    checkDueReminders();
     updateCurrentDate();
     renderMedicationList();
     updateProgress();
@@ -32,6 +35,12 @@ function setupEventListeners() {
     document.getElementById('settingsBtn').addEventListener('click', openSettings);
     document.getElementById('closeModal').addEventListener('click', closeSettings);
     document.getElementById('saveSettings').addEventListener('click', saveSettings);
+    
+    // Change reminders modal
+    document.getElementById('manageReminders').addEventListener('click', openChangeRemindersModal);
+    document.getElementById('closeRemindersModal').addEventListener('click', closeChangeRemindersModal);
+    document.getElementById('closeRemindersModalBtn').addEventListener('click', closeChangeRemindersModal);
+    document.getElementById('addChangeReminder').addEventListener('click', addChangeReminder);
     
     // Medication management
     document.getElementById('addMedication').addEventListener('click', addMedication);
@@ -49,12 +58,20 @@ function setupEventListeners() {
     document.getElementById('settingsModal').addEventListener('click', (e) => {
         if (e.target.id === 'settingsModal') closeSettings();
     });
+    
+    document.getElementById('changeRemindersModal').addEventListener('click', (e) => {
+        if (e.target.id === 'changeRemindersModal') closeChangeRemindersModal();
+    });
+    
+    // Reminder type change
+    document.getElementById('reminderType').addEventListener('change', updateReminderForm);
 }
 
 // Load settings from localStorage
 function loadSettings() {
     const storedMedications = localStorage.getItem(STORAGE_KEYS.MEDICATIONS);
     const storedStatus = localStorage.getItem(STORAGE_KEYS.DAILY_STATUS);
+    const storedReminders = localStorage.getItem(STORAGE_KEYS.CHANGE_REMINDERS);
     
     if (storedMedications) {
         medications = JSON.parse(storedMedications);
@@ -63,12 +80,17 @@ function loadSettings() {
     if (storedStatus) {
         dailyStatus = JSON.parse(storedStatus);
     }
+    
+    if (storedReminders) {
+        changeReminders = JSON.parse(storedReminders);
+    }
 }
 
 // Save settings to localStorage
 function saveToStorage() {
     localStorage.setItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify(medications));
     localStorage.setItem(STORAGE_KEYS.DAILY_STATUS, JSON.stringify(dailyStatus));
+    localStorage.setItem(STORAGE_KEYS.CHANGE_REMINDERS, JSON.stringify(changeReminders));
 }
 
 // Load yesterday's data
@@ -400,6 +422,267 @@ function renderYesterdayStatus() {
     }
     
     container.innerHTML = html;
+}
+
+// Check for due medication change reminders
+function checkDueReminders() {
+    if (changeReminders.length === 0) return;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const dueReminders = changeReminders.filter(reminder => {
+        const reminderDate = new Date(reminder.date);
+        reminderDate.setHours(0, 0, 0, 0);
+        return reminderDate <= today;
+    });
+    
+    if (dueReminders.length > 0) {
+        setTimeout(() => showDueReminders(dueReminders), 800);
+    }
+}
+
+// Show due reminders
+function showDueReminders(dueReminders) {
+    let message = '📅 Medikamenten-Änderungen fällig:\n\n';
+    
+    dueReminders.forEach((reminder, index) => {
+        const dateObj = new Date(reminder.date);
+        const dateStr = dateObj.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+        
+        message += `${index + 1}. ${dateStr}: `;
+        
+        if (reminder.type === 'add') {
+            message += `➕ Hinzufügen: ${reminder.name}`;
+            if (reminder.amount) message += ` (${reminder.amount})`;
+        } else if (reminder.type === 'remove') {
+            message += `➖ Entfernen: ${reminder.name}`;
+        } else if (reminder.type === 'change') {
+            message += `🔄 Ändern: ${reminder.name} → ${reminder.amount}`;
+        }
+        message += '\n';
+    });
+    
+    message += '\nMöchten Sie diese Änderungen jetzt anwenden?';
+    
+    if (confirm(message)) {
+        applyDueReminders(dueReminders);
+    }
+}
+
+// Apply due reminders
+function applyDueReminders(dueReminders) {
+    let applied = 0;
+    
+    dueReminders.forEach(reminder => {
+        if (reminder.type === 'add') {
+            // Add new medication
+            const exists = medications.find(med => {
+                const name = typeof med === 'string' ? med : med.name;
+                return name === reminder.name;
+            });
+            
+            if (!exists) {
+                medications.push({ name: reminder.name, amount: reminder.amount || '' });
+                applied++;
+            }
+        } else if (reminder.type === 'remove') {
+            // Remove medication
+            const index = medications.findIndex(med => {
+                const name = typeof med === 'string' ? med : med.name;
+                return name === reminder.name;
+            });
+            
+            if (index !== -1) {
+                const medName = typeof medications[index] === 'string' ? medications[index] : medications[index].name;
+                medications.splice(index, 1);
+                delete dailyStatus[medName];
+                applied++;
+            }
+        } else if (reminder.type === 'change') {
+            // Change amount
+            const med = medications.find(m => {
+                const name = typeof m === 'string' ? m : m.name;
+                return name === reminder.name;
+            });
+            
+            if (med && typeof med === 'object') {
+                med.amount = reminder.amount;
+                applied++;
+            }
+        }
+        
+        // Remove this reminder
+        changeReminders = changeReminders.filter(r => r !== reminder);
+    });
+    
+    saveToStorage();
+    renderMedicationList();
+    updateProgress();
+    
+    alert(`✅ ${applied} Änderung(en) wurde(n) angewendet!`);
+}
+
+// Open change reminders modal
+function openChangeRemindersModal() {
+    const modal = document.getElementById('changeRemindersModal');
+    modal.classList.add('show');
+    renderChangeReminders();
+    populateMedicationSelect();
+}
+
+// Close change reminders modal
+function closeChangeRemindersModal() {
+    const modal = document.getElementById('changeRemindersModal');
+    modal.classList.remove('show');
+}
+
+// Populate medication select dropdown
+function populateMedicationSelect() {
+    const select = document.getElementById('reminderMedication');
+    select.innerHTML = '<option value="">Medikament auswählen...</option>';
+    
+    medications.forEach(med => {
+        const medName = typeof med === 'string' ? med : med.name;
+        const option = document.createElement('option');
+        option.value = medName;
+        option.textContent = medName;
+        select.appendChild(option);
+    });
+}
+
+// Add change reminder
+function addChangeReminder() {
+    const type = document.getElementById('reminderType').value;
+    const date = document.getElementById('reminderDate').value;
+    const medSelect = document.getElementById('reminderMedication');
+    const newName = document.getElementById('reminderNewName').value.trim();
+    const newAmount = document.getElementById('reminderNewAmount').value.trim();
+    
+    if (!date) {
+        alert('Bitte wählen Sie ein Datum.');
+        return;
+    }
+    
+    let reminder = { type, date };
+    
+    if (type === 'add') {
+        if (!newName) {
+            alert('Bitte geben Sie einen Medikamentennamen ein.');
+            return;
+        }
+        reminder.name = newName;
+        reminder.amount = newAmount;
+    } else if (type === 'remove') {
+        if (!medSelect.value) {
+            alert('Bitte wählen Sie ein Medikament aus.');
+            return;
+        }
+        reminder.name = medSelect.value;
+    } else if (type === 'change') {
+        if (!medSelect.value) {
+            alert('Bitte wählen Sie ein Medikament aus.');
+            return;
+        }
+        if (!newAmount) {
+            alert('Bitte geben Sie die neue Menge ein.');
+            return;
+        }
+        reminder.name = medSelect.value;
+        reminder.amount = newAmount;
+    }
+    
+    changeReminders.push(reminder);
+    saveToStorage();
+    renderChangeReminders();
+    
+    // Clear inputs
+    document.getElementById('reminderNewName').value = '';
+    document.getElementById('reminderNewAmount').value = '';
+    document.getElementById('reminderDate').value = '';
+}
+
+// Render change reminders list
+function renderChangeReminders() {
+    const list = document.getElementById('changeRemindersList');
+    list.innerHTML = '';
+    
+    if (changeReminders.length === 0) {
+        list.innerHTML = '<li style="text-align: center; color: #999; padding: 20px;">Keine Erinnerungen geplant</li>';
+        return;
+    }
+    
+    // Sort by date
+    const sorted = [...changeReminders].sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    sorted.forEach((reminder, index) => {
+        const item = document.createElement('li');
+        item.className = 'medication-settings-item';
+        
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'med-info';
+        
+        const dateObj = new Date(reminder.date);
+        const dateStr = dateObj.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+        
+        const dateSpan = document.createElement('span');
+        dateSpan.className = 'med-name';
+        dateSpan.textContent = dateStr;
+        infoDiv.appendChild(dateSpan);
+        
+        const actionSpan = document.createElement('span');
+        actionSpan.className = 'med-amount';
+        
+        if (reminder.type === 'add') {
+            actionSpan.textContent = `➕ Hinzufügen: ${reminder.name}${reminder.amount ? ' (' + reminder.amount + ')' : ''}`;
+        } else if (reminder.type === 'remove') {
+            actionSpan.textContent = `➖ Entfernen: ${reminder.name}`;
+        } else if (reminder.type === 'change') {
+            actionSpan.textContent = `🔄 Ändern: ${reminder.name} → ${reminder.amount}`;
+        }
+        
+        infoDiv.appendChild(actionSpan);
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = 'Löschen';
+        deleteBtn.addEventListener('click', () => deleteChangeReminder(index));
+        
+        item.appendChild(infoDiv);
+        item.appendChild(deleteBtn);
+        list.appendChild(item);
+    });
+}
+
+// Delete change reminder
+function deleteChangeReminder(index) {
+    const sorted = [...changeReminders].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const reminderToDelete = sorted[index];
+    changeReminders = changeReminders.filter(r => r !== reminderToDelete);
+    saveToStorage();
+    renderChangeReminders();
+}
+
+// Update reminder form based on type
+function updateReminderForm() {
+    const type = document.getElementById('reminderType').value;
+    const existingMedSection = document.getElementById('existingMedSection');
+    const newMedSection = document.getElementById('newMedSection');
+    const amountSection = document.getElementById('amountSection');
+    
+    existingMedSection.style.display = 'none';
+    newMedSection.style.display = 'none';
+    amountSection.style.display = 'none';
+    
+    if (type === 'add') {
+        newMedSection.style.display = 'block';
+        amountSection.style.display = 'block';
+    } else if (type === 'remove') {
+        existingMedSection.style.display = 'block';
+    } else if (type === 'change') {
+        existingMedSection.style.display = 'block';
+        amountSection.style.display = 'block';
+    }
 }
 
 // PWA Install prompt

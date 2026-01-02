@@ -68,10 +68,75 @@
                         <!-- Medication settings will be populated here -->
                     </ul>
                 </section>
+
+                <section class="settings-section">
+                    <h3>Medikamenten-Änderungen</h3>
+                    <button id="manageReminders" class="secondary-btn">Änderungen planen</button>
+                </section>
             </div>
 
             <div class="modal-footer">
                 <button id="saveSettings" class="primary-btn">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Reminders Modal -->
+    <div id="changeRemindersModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Medikamenten-Änderungen planen</h2>
+                <button class="close-btn" id="closeRemindersModal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <section class="settings-section">
+                    <h3>Neue Änderung planen</h3>
+                    
+                    <div class="input-group">
+                        <label for="reminderType">Art der Änderung:</label>
+                        <select id="reminderType">
+                            <option value="add">Medikament hinzufügen</option>
+                            <option value="remove">Medikament entfernen</option>
+                            <option value="change">Menge ändern</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="reminderDate">Datum:</label>
+                        <input type="date" id="reminderDate">
+                    </div>
+                    
+                    <div class="input-group" id="existingMedSection" style="display:none;">
+                        <label for="reminderMedication">Medikament:</label>
+                        <select id="reminderMedication">
+                            <option value="">Medikament auswählen...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group" id="newMedSection">
+                        <label for="reminderNewName">Medikamentenname:</label>
+                        <input type="text" id="reminderNewName" placeholder="Name eingeben">
+                    </div>
+                    
+                    <div class="input-group" id="amountSection">
+                        <label for="reminderNewAmount">Menge:</label>
+                        <input type="text" id="reminderNewAmount" placeholder="z.B. 2 Tabletten">
+                    </div>
+                    
+                    <button id="addChangeReminder" class="primary-btn">Erinnerung hinzufügen</button>
+                </section>
+
+                <section class="settings-section">
+                    <h3>Geplante Änderungen</h3>
+                    <ul id="changeRemindersList" class="medication-settings-list">
+                        <!-- Change reminders will be populated here -->
+                    </ul>
+                </section>
+            </div>
+
+            <div class="modal-footer">
+                <button id="closeRemindersModalBtn" class="secondary-btn">Schließen</button>
             </div>
         </div>
     </div>

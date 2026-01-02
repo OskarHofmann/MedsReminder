@@ -311,6 +311,16 @@ h1 {
     font-size: 1rem;
 }
 
+.input-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1rem;
+    background: white;
+    cursor: pointer;
+}
+
 .medication-input {
     display: flex;
     gap: 10px;
